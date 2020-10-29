@@ -9562,8 +9562,8 @@ int Character::run_cost( int base_cost, bool diag ) const
     }
     const bool flatground = movecost < 105;
     // The "FLAT" tag includes soft surfaces, so not a good fit.
-    const bool on_road = flatground && g->m.has_flag( "ROAD", pos() );
-    const bool on_fungus = g->m.has_flag_ter_or_furn( "FUNGUS", pos() );
+    const bool on_road = flatground && g->m.has_flag( STATIC("ROAD"), pos() );
+    const bool on_fungus = g->m.has_flag_ter_or_furn( STATIC("FUNGUS"), pos() );
 
     if( !is_mounted() ) {
         if( movecost > 100 ) {

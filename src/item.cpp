@@ -4829,6 +4829,7 @@ int item::reach_range( const Character &guy ) const
 void item::unset_flags()
 {
     item_tags.clear();
+    requires_tags_processing = true;
 }
 
 bool item::has_fault( const fault_id &fault ) const
@@ -4874,12 +4875,14 @@ bool item::has_any_flag( const std::vector<std::string> &flags ) const
 item &item::set_flag( const std::string &flag )
 {
     item_tags.insert( flag );
+    requires_tags_processing = true;
     return *this;
 }
 
 item &item::unset_flag( const std::string &flag )
 {
     item_tags.erase( flag );
+    requires_tags_processing = true;
     return *this;
 }
 
@@ -8979,34 +8982,45 @@ bool item::process_internal( player *carrier, const tripoint &pos, bool activate
         g->m.emit_field( pos, e );
     }
 
-    if( has_flag( flag_FAKE_SMOKE ) && process_fake_smoke( carrier, pos ) ) {
-        return true;
+    if (requires_tags_processing) {
+        // `mark` becomes true if any of the flags that require processing are present
+        bool mark = false;
+
+        if (has_flag(flag_FAKE_SMOKE) && (mark == true) && process_fake_smoke(carrier, pos)) {
+            return true;
+        }
+        if (has_flag(flag_FAKE_MILL) && (mark == true) && process_fake_mill(carrier, pos)) {
+            return true;
+        }
+        if (is_corpse() && (mark == true) && process_corpse(carrier, pos)) {
+            return true;
+        }
+        if (has_flag(flag_WET) && (mark == true) && process_wet(carrier, pos)) {
+            // Drying items are never destroyed, but we want to exit so they don't get processed as tools.
+            return false;
+        }
+        if (has_flag(flag_LITCIG) && (mark == true) && process_litcig(carrier, pos)) {
+            return true;
+        }
+        if ((has_flag(flag_WATER_EXTINGUISH) || has_flag(flag_WIND_EXTINGUISH)) &&
+            (mark == true) && process_extinguish(carrier, pos)) {
+            return false;
+        }
+        if (has_flag(flag_CABLE_SPOOL) && (mark == true)) {
+            // DO NOT process this as a tool! It really isn't!
+            return process_cable(carrier, pos);
+        }
+        if (has_flag(flag_IS_UPS) && (mark == true)) {
+            // DO NOT process this as a tool! It really isn't!
+            return process_UPS(carrier, pos);
+        }
+
+        if (!mark) {
+            // here we're certain that no flags that could trigger processing are present
+            requires_tags_processing = false;
+        }
     }
-    if( has_flag( flag_FAKE_MILL ) && process_fake_mill( carrier, pos ) ) {
-        return true;
-    }
-    if( is_corpse() && process_corpse( carrier, pos ) ) {
-        return true;
-    }
-    if( has_flag( flag_WET ) && process_wet( carrier, pos ) ) {
-        // Drying items are never destroyed, but we want to exit so they don't get processed as tools.
-        return false;
-    }
-    if( has_flag( flag_LITCIG ) && process_litcig( carrier, pos ) ) {
-        return true;
-    }
-    if( ( has_flag( flag_WATER_EXTINGUISH ) || has_flag( flag_WIND_EXTINGUISH ) ) &&
-        process_extinguish( carrier, pos ) ) {
-        return false;
-    }
-    if( has_flag( flag_CABLE_SPOOL ) ) {
-        // DO NOT process this as a tool! It really isn't!
-        return process_cable( carrier, pos );
-    }
-    if( has_flag( flag_IS_UPS ) ) {
-        // DO NOT process this as a tool! It really isn't!
-        return process_UPS( carrier, pos );
-    }
+
     if( is_tool() ) {
         return process_tool( carrier, pos );
     }

@@ -2099,6 +2099,10 @@ class item : public visitable<item>
         cata::flat_set<std::string> item_tags; // generic item specific flags
 
     private:
+        /** `true` if item has any of the flags that require processing in item::process_internal.
+        * This flag is reset to `true` if item tags are changed.
+        */
+        bool requires_tags_processing = true;
         safe_reference_anchor anchor;
         const itype *curammo = nullptr;
         std::map<std::string, std::string> item_vars;
